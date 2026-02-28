@@ -18,11 +18,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // 데이터 크기 체크 (Firestore 1MB 제한)
+      const dataStr = JSON.stringify(localData);
+      const sizeInBytes = new Blob([dataStr]).size;
+      const sizeInMB = sizeInBytes / (1024 * 1024);
+      
+      console.log(`Current data size: ${sizeInMB.toFixed(2)} MB`);
+      
+      if (sizeInMB > 0.95) {
+        alert(`데이터 용량이 너무 큽니다 (${sizeInMB.toFixed(2)}MB). \n이미지 수를 줄이거나 더 작은 이미지를 사용해주세요. (Firestore 제한: 1MB)`);
+        setIsSaving(false);
+        return;
+      }
+
       await onSave(localData);
       setFeedback('서버 데이터 업데이트 성공!');
       setTimeout(() => setFeedback(null), 3000);
-    } catch (err) {
-      alert('저장 중 오류가 발생했습니다.');
+    } catch (err: any) {
+      console.error('Save error details:', err);
+      let msg = '저장 중 오류가 발생했습니다.';
+      if (err.code === 'permission-denied') {
+        msg = '권한이 없습니다. Firebase 보안 규칙이나 API 키 제한을 확인해주세요.';
+      } else if (err.message?.includes('too large')) {
+        msg = '데이터 용량이 너무 커서 저장할 수 없습니다. 이미지를 줄여주세요.';
+      }
+      alert(`${msg}\n\n상세 오류: ${err.message || '알 수 없는 오류'}`);
     } finally {
       setIsSaving(false);
     }
@@ -114,7 +134,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <label className={LabelStyle}>동아리 이름</label>
-                <input type="text" value={localData.config.name} onChange={e => setLocalData({...localData, config: {...localData.config, name: e.target.value}})} className={InputStyle}/>
+                <input type="text" value={localData.config.name} onChange={e => {
+                  const val = e.target.value;
+                  setLocalData(prev => ({...prev, config: {...prev.config, name: val}}));
+                }} className={InputStyle}/>
               </div>
               <div className="space-y-4">
                 <label className={LabelStyle}>로고 이미지</label>
@@ -128,7 +151,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
               </div>
               <div className="space-y-4">
                 <label className={LabelStyle}>상단 뱃지 텍스트</label>
-                <input type="text" value={localData.config.heroBadge} onChange={e => setLocalData({...localData, config: {...localData.config, heroBadge: e.target.value}})} className={InputStyle}/>
+                <input type="text" value={localData.config.heroBadge} onChange={e => {
+                  const val = e.target.value;
+                  setLocalData(prev => ({...prev, config: {...prev.config, heroBadge: val}}));
+                }} className={InputStyle}/>
               </div>
               <div className="space-y-4">
                 <label className={LabelStyle}>메인 배경 이미지 (PC)</label>
@@ -136,7 +162,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {localData.config.heroBg && <img src={localData.config.heroBg} className="w-16 h-10 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData({...localData, config: {...localData.config, heroBg: base}}))} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBg: base}})))} />
                     </label>
                 </div>
               </div>
@@ -146,17 +172,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {(localData.config.heroBgMobile || localData.config.heroBg) && <img src={localData.config.heroBgMobile || localData.config.heroBg} className="w-10 h-16 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData({...localData, config: {...localData.config, heroBgMobile: base}}))} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBgMobile: base}})))} />
                     </label>
                 </div>
               </div>
               <div className="md:col-span-2 space-y-4">
                 <label className={LabelStyle}>메인 타이틀 (실시간 텍스트)</label>
-                <textarea value={localData.config.heroTitle} onChange={e => setLocalData({...localData, config: {...localData.config, heroTitle: e.target.value}})} className={`${InputStyle} min-h-[150px] text-3xl font-black`} />
+                <textarea value={localData.config.heroTitle} onChange={e => {
+                  const val = e.target.value;
+                  setLocalData(prev => ({...prev, config: {...prev.config, heroTitle: val}}));
+                }} className={`${InputStyle} min-h-[150px] text-3xl font-black`} />
               </div>
               <div className="md:col-span-2 space-y-4">
                 <label className={LabelStyle}>메인 설명</label>
-                <textarea value={localData.config.heroDesc} onChange={e => setLocalData({...localData, config: {...localData.config, heroDesc: e.target.value}})} className={`${InputStyle} min-h-[100px]`} />
+                <textarea value={localData.config.heroDesc} onChange={e => {
+                  const val = e.target.value;
+                  setLocalData(prev => ({...prev, config: {...prev.config, heroDesc: val}}));
+                }} className={`${InputStyle} min-h-[100px]`} />
               </div>
             </div>
           </div>
@@ -186,7 +218,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <label className={LabelStyle}>부서 설명</label>
-                        <textarea value={dept.description} onChange={e => { const updated = [...localData.departments]; updated[i].description = e.target.value; setLocalData({...localData, departments: updated}); }} className={`${InputStyle} min-h-[100px]`} />
+                        <textarea value={dept.description} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.departments];
+                            if (updated[i]) updated[i].description = val;
+                            return { ...prev, departments: updated };
+                          });
+                        }} className={`${InputStyle} min-h-[100px]`} />
                     </div>
                  </div>
                </div>
@@ -202,12 +241,41 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
             </div>
             {localData.activities.map((act, i) => (
               <div key={act.id} className="p-10 bg-white rounded-[3rem] border border-gray-100 relative group shadow-sm">
-                <button onClick={() => { if(confirm('삭제할까요?')){ const updated = [...localData.activities]; updated.splice(i, 1); setLocalData({...localData, activities: updated}); }}} className="absolute top-8 right-8 text-red-300 hover:text-red-500"><Trash2 size={24}/></button>
+                <button onClick={() => { 
+                  if(confirm('삭제할까요?')){ 
+                    setLocalData(prev => {
+                      const updated = [...prev.activities];
+                      updated.splice(i, 1);
+                      return { ...prev, activities: updated };
+                    });
+                  }
+                }} className="absolute top-8 right-8 text-red-300 hover:text-red-500"><Trash2 size={24}/></button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-6">
-                    <input type="text" value={act.title} onChange={e => { const updated = [...localData.activities]; updated[i].title = e.target.value; setLocalData({...localData, activities: updated}); }} className={InputStyle} placeholder="활동 제목"/>
-                    <input type="date" value={act.date} onChange={e => { const updated = [...localData.activities]; updated[i].date = e.target.value; setLocalData({...localData, activities: updated}); }} className={InputStyle}/>
-                    <textarea value={act.content} onChange={e => { const updated = [...localData.activities]; updated[i].content = e.target.value; setLocalData({...localData, activities: updated}); }} className={`${InputStyle} min-h-[200px]`} placeholder="활동 설명"/>
+                    <input type="text" value={act.title} onChange={e => { 
+                      const val = e.target.value;
+                      setLocalData(prev => {
+                        const updated = [...prev.activities];
+                        if (updated[i]) updated[i].title = val;
+                        return { ...prev, activities: updated };
+                      });
+                    }} className={InputStyle} placeholder="활동 제목"/>
+                    <input type="date" value={act.date} onChange={e => { 
+                      const val = e.target.value;
+                      setLocalData(prev => {
+                        const updated = [...prev.activities];
+                        if (updated[i]) updated[i].date = val;
+                        return { ...prev, activities: updated };
+                      });
+                    }} className={InputStyle}/>
+                    <textarea value={act.content} onChange={e => { 
+                      const val = e.target.value;
+                      setLocalData(prev => {
+                        const updated = [...prev.activities];
+                        if (updated[i]) updated[i].content = val;
+                        return { ...prev, activities: updated };
+                      });
+                    }} className={`${InputStyle} min-h-[200px]`} placeholder="활동 설명"/>
                   </div>
                   <div className="space-y-4">
                     <label className={LabelStyle}>사진 업로드 (여러 장 가능)</label>
@@ -251,15 +319,61 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
             </div>
             {localData.magazines.map((mag, i) => (
               <div key={mag.id} className="p-10 bg-white rounded-[3rem] border border-gray-100 relative shadow-sm">
-                <button onClick={() => { if(confirm('삭제할까요?')){ const updated = [...localData.magazines]; updated.splice(i, 1); setLocalData({...localData, magazines: updated}); }}} className="absolute top-8 right-8 text-red-300 hover:text-red-500"><Trash2 size={24}/></button>
+                <button onClick={() => { 
+                  if(confirm('삭제할까요?')){ 
+                    setLocalData(prev => {
+                      const updated = [...prev.magazines];
+                      updated.splice(i, 1);
+                      return { ...prev, magazines: updated };
+                    });
+                  }
+                }} className="absolute top-8 right-8 text-red-300 hover:text-red-500"><Trash2 size={24}/></button>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-6">
-                    <input type="text" value={mag.title} onChange={e => { const updated = [...localData.magazines]; updated[i].title = e.target.value; setLocalData({...localData, magazines: updated}); }} className={InputStyle} placeholder="매거진 제목"/>
-                    <div className="flex gap-4"><input type="text" value={mag.author} onChange={e => { const updated = [...localData.magazines]; updated[i].author = e.target.value; setLocalData({...localData, magazines: updated}); }} className={InputStyle} placeholder="작성자"/><input type="date" value={mag.date} onChange={e => { const updated = [...localData.magazines]; updated[i].date = e.target.value; setLocalData({...localData, magazines: updated}); }} className={InputStyle}/></div>
-                    <select value={mag.category} onChange={e => { const updated = [...localData.magazines]; updated[i].category = e.target.value as MagazineCategory; setLocalData({...localData, magazines: updated}); }} className={InputStyle}>
+                    <input type="text" value={mag.title} onChange={e => { 
+                      const val = e.target.value;
+                      setLocalData(prev => {
+                        const updated = [...prev.magazines];
+                        if (updated[i]) updated[i].title = val;
+                        return { ...prev, magazines: updated };
+                      });
+                    }} className={InputStyle} placeholder="매거진 제목"/>
+                    <div className="flex gap-4">
+                      <input type="text" value={mag.author} onChange={e => { 
+                        const val = e.target.value;
+                        setLocalData(prev => {
+                          const updated = [...prev.magazines];
+                          if (updated[i]) updated[i].author = val;
+                          return { ...prev, magazines: updated };
+                        });
+                      }} className={InputStyle} placeholder="작성자"/>
+                      <input type="date" value={mag.date} onChange={e => { 
+                        const val = e.target.value;
+                        setLocalData(prev => {
+                          const updated = [...prev.magazines];
+                          if (updated[i]) updated[i].date = val;
+                          return { ...prev, magazines: updated };
+                        });
+                      }} className={InputStyle}/>
+                    </div>
+                    <select value={mag.category} onChange={e => { 
+                      const val = e.target.value as MagazineCategory;
+                      setLocalData(prev => {
+                        const updated = [...prev.magazines];
+                        if (updated[i]) updated[i].category = val;
+                        return { ...prev, magazines: updated };
+                      });
+                    }} className={InputStyle}>
                         <option value="활동소식">활동소식</option><option value="인터뷰">인터뷰</option><option value="칼럼">칼럼</option><option value="탐구자료">탐구자료</option>
                     </select>
-                    <textarea value={mag.content} onChange={e => { const updated = [...localData.magazines]; updated[i].content = e.target.value; setLocalData({...localData, magazines: updated}); }} className={`${InputStyle} min-h-[300px]`} placeholder="본문 내용"/>
+                    <textarea value={mag.content} onChange={e => { 
+                      const val = e.target.value;
+                      setLocalData(prev => {
+                        const updated = [...prev.magazines];
+                        if (updated[i]) updated[i].content = val;
+                        return { ...prev, magazines: updated };
+                      });
+                    }} className={`${InputStyle} min-h-[300px]`} placeholder="본문 내용"/>
                   </div>
                   <div className="space-y-6">
                     <label className={LabelStyle}>하이라이트 (썸네일)</label>
@@ -310,15 +424,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
           <div className="space-y-16 animate-fade-in">
             <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
               <h2 className={SectionTitle}>학회 설명 및 소속 학교</h2>
-              <textarea value={localData.societyDesc} onChange={e => setLocalData({...localData, societyDesc: e.target.value})} className={`${InputStyle} min-h-[120px]`} placeholder="학회 소개 글을 작성하세요." />
+              <textarea value={localData.societyDesc} onChange={e => {
+                const val = e.target.value;
+                setLocalData(prev => ({...prev, societyDesc: val}));
+              }} className={`${InputStyle} min-h-[120px]`} placeholder="학회 소개 글을 작성하세요." />
               <div className="flex items-center justify-between mt-10">
                 <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest italic">소속 동아리/학교 리스트</h3>
-                <button onClick={() => setLocalData({...localData, societyMembers: [...localData.societyMembers, {id: Date.now().toString(), name: '', schoolName: '', schoolLogo: ''}]})} className="p-3 bg-gray-100 rounded-xl hover:bg-black hover:text-white transition-all"><Plus size={20}/></button>
+                <button onClick={() => setLocalData(prev => ({...prev, societyMembers: [...prev.societyMembers, {id: Date.now().toString(), name: '', schoolName: '', schoolLogo: ''}]}))} className="p-3 bg-gray-100 rounded-xl hover:bg-black hover:text-white transition-all"><Plus size={20}/></button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {localData.societyMembers.map((m, i) => (
                   <div key={m.id} className="p-6 bg-gray-50 rounded-3xl flex items-center gap-6 relative group">
-                    <button onClick={() => { const updated = [...localData.societyMembers]; updated.splice(i, 1); setLocalData({...localData, societyMembers: updated}); }} className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
+                    <button onClick={() => { 
+                      setLocalData(prev => {
+                        const updated = [...prev.societyMembers];
+                        updated.splice(i, 1);
+                        return { ...prev, societyMembers: updated };
+                      });
+                    }} className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
                     <label className="w-16 h-16 rounded-full border bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
                         {m.schoolLogo && m.schoolLogo !== "" ? <img src={m.schoolLogo} className="w-full h-full object-contain" /> : <Upload size={16} className="text-gray-300"/>}
                         <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
@@ -330,8 +453,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                         }, 500)} />
                     </label>
                     <div className="flex-grow space-y-2">
-                        <input type="text" value={m.schoolName} onChange={e => { const updated = [...localData.societyMembers]; updated[i].schoolName = e.target.value; setLocalData({...localData, societyMembers: updated}); }} className="w-full bg-white px-4 py-2 rounded-xl text-xs font-black border border-gray-100" placeholder="학교명"/>
-                        <input type="text" value={m.name} onChange={e => { const updated = [...localData.societyMembers]; updated[i].name = e.target.value; setLocalData({...localData, societyMembers: updated}); }} className="w-full bg-white px-4 py-2 rounded-xl text-sm font-black border border-gray-100" placeholder="동아리명"/>
+                        <input type="text" value={m.schoolName} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.societyMembers];
+                            if (updated[i]) updated[i].schoolName = val;
+                            return { ...prev, societyMembers: updated };
+                          });
+                        }} className="w-full bg-white px-4 py-2 rounded-xl text-xs font-black border border-gray-100" placeholder="학교명"/>
+                        <input type="text" value={m.name} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.societyMembers];
+                            if (updated[i]) updated[i].name = val;
+                            return { ...prev, societyMembers: updated };
+                          });
+                        }} className="w-full bg-white px-4 py-2 rounded-xl text-sm font-black border border-gray-100" placeholder="동아리명"/>
                     </div>
                   </div>
                 ))}
@@ -343,12 +480,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                 <h2 className={SectionTitle}>학회 활동 소개</h2>
                 <button onClick={() => setLocalData({...localData, societyActivities: [...localData.societyActivities, {id: Date.now().toString(), title: '', description: ''}]})} className="p-3 bg-gray-100 rounded-xl hover:bg-black hover:text-white transition-all"><Plus size={20}/></button>
               </div>
-              <div className="space-y-6">
+               <div className="space-y-6">
                 {localData.societyActivities.map((sa, i) => (
                     <div key={sa.id} className="p-8 bg-gray-50 rounded-3xl relative group space-y-4">
-                        <button onClick={() => { const updated = [...localData.societyActivities]; updated.splice(i, 1); setLocalData({...localData, societyActivities: updated}); }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
-                        <input type="text" value={sa.title} onChange={e => { const updated = [...localData.societyActivities]; updated[i].title = e.target.value; setLocalData({...localData, societyActivities: updated}); }} className="w-full bg-white px-6 py-4 rounded-2xl text-lg font-black border border-gray-100" placeholder="활동 제목"/>
-                        <textarea value={sa.description} onChange={e => { const updated = [...localData.societyActivities]; updated[i].description = e.target.value; setLocalData({...localData, societyActivities: updated}); }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-bold border border-gray-100 min-h-[100px]" placeholder="활동에 대한 상세 설명을 작성하세요."/>
+                        <button onClick={() => { 
+                          setLocalData(prev => {
+                            const updated = [...prev.societyActivities];
+                            updated.splice(i, 1);
+                            return { ...prev, societyActivities: updated };
+                          });
+                        }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
+                        <input type="text" value={sa.title} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.societyActivities];
+                            if (updated[i]) updated[i].title = val;
+                            return { ...prev, societyActivities: updated };
+                          });
+                        }} className="w-full bg-white px-6 py-4 rounded-2xl text-lg font-black border border-gray-100" placeholder="활동 제목"/>
+                        <textarea value={sa.description} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.societyActivities];
+                            if (updated[i]) updated[i].description = val;
+                            return { ...prev, societyActivities: updated };
+                          });
+                        }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-bold border border-gray-100 min-h-[100px]" placeholder="활동에 대한 상세 설명을 작성하세요."/>
                     </div>
                 ))}
               </div>
@@ -365,14 +522,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {localData.contacts.map((c, i) => (
                     <div key={c.id} className="p-8 bg-gray-50 rounded-[2.5rem] relative group space-y-4">
-                         <button onClick={() => { const updated = [...localData.contacts]; updated.splice(i, 1); setLocalData({...localData, contacts: updated}); }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
+                         <button onClick={() => { 
+                           setLocalData(prev => {
+                             const updated = [...prev.contacts];
+                             updated.splice(i, 1);
+                             return { ...prev, contacts: updated };
+                           });
+                         }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
                          <div className="space-y-2">
                             <label className={LabelStyle}>라벨 (예: 기장 연락처, 이메일)</label>
-                            <input type="text" value={c.label} onChange={e => { const updated = [...localData.contacts]; updated[i].label = e.target.value; setLocalData({...localData, contacts: updated}); }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-black border border-gray-100" />
+                            <input type="text" value={c.label} onChange={e => { 
+                              const val = e.target.value;
+                              setLocalData(prev => {
+                                const updated = [...prev.contacts];
+                                if (updated[i]) updated[i].label = val;
+                                return { ...prev, contacts: updated };
+                              });
+                            }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-black border border-gray-100" />
                          </div>
                          <div className="space-y-2">
                             <label className={LabelStyle}>정보 내용 (연락처, ID 등)</label>
-                            <input type="text" value={c.value} onChange={e => { const updated = [...localData.contacts]; updated[i].value = e.target.value; setLocalData({...localData, contacts: updated}); }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-black border border-gray-100" />
+                            <input type="text" value={c.value} onChange={e => { 
+                              const val = e.target.value;
+                              setLocalData(prev => {
+                                const updated = [...prev.contacts];
+                                if (updated[i]) updated[i].value = val;
+                                return { ...prev, contacts: updated };
+                              });
+                            }} className="w-full bg-white px-6 py-4 rounded-2xl text-sm font-black border border-gray-100" />
                          </div>
                     </div>
                 ))}
@@ -384,12 +561,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
           <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm animate-fade-in space-y-10">
             <div className="flex items-center justify-between">
                 <h2 className={SectionTitle}>협력 동아리 관리</h2>
-                <button onClick={() => setLocalData({...localData, partners: [...localData.partners, {id: Date.now().toString(), schoolName: '', clubName: '', logo: ''}]})} className="p-4 bg-blue-600 text-white rounded-2xl flex items-center gap-2 text-sm font-black shadow-lg"><Plus size={20}/> 동아리 추가</button>
+                <button onClick={() => setLocalData(prev => ({...prev, partners: [...prev.partners, {id: Date.now().toString(), schoolName: '', clubName: '', logo: ''}]}))} className="p-4 bg-blue-600 text-white rounded-2xl flex items-center gap-2 text-sm font-black shadow-lg"><Plus size={20}/> 동아리 추가</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {localData.partners.map((p, i) => (
                     <div key={p.id} className="p-8 bg-gray-50 rounded-[2.5rem] flex items-center gap-8 relative group">
-                         <button onClick={() => { const updated = [...localData.partners]; updated.splice(i, 1); setLocalData({...localData, partners: updated}); }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
+                         <button onClick={() => { 
+                           setLocalData(prev => {
+                             const updated = [...prev.partners];
+                             updated.splice(i, 1);
+                             return { ...prev, partners: updated };
+                           });
+                         }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
                          <label className="w-20 h-20 rounded-full border-2 border-dashed bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
                             {p.logo && p.logo !== "" ? <img src={p.logo} className="w-full h-full object-contain" /> : <Upload size={20} className="text-gray-300"/>}
                             <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
@@ -401,8 +584,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                             }, 500)} />
                          </label>
                          <div className="flex-grow space-y-3">
-                            <input type="text" value={p.schoolName} onChange={e => { const updated = [...localData.partners]; updated[i].schoolName = e.target.value; setLocalData({...localData, partners: updated}); }} className="w-full bg-white px-6 py-3 rounded-2xl text-xs font-black border border-gray-100 uppercase" placeholder="학교 이름" />
-                            <input type="text" value={p.clubName} onChange={e => { const updated = [...localData.partners]; updated[i].clubName = e.target.value; setLocalData({...localData, partners: updated}); }} className="w-full bg-white px-6 py-3 rounded-2xl text-lg font-black border border-gray-100" placeholder="동아리 이름" />
+                            <input type="text" value={p.schoolName} onChange={e => { 
+                              const val = e.target.value;
+                              setLocalData(prev => {
+                                const updated = [...prev.partners];
+                                if (updated[i]) updated[i].schoolName = val;
+                                return { ...prev, partners: updated };
+                              });
+                            }} className="w-full bg-white px-6 py-3 rounded-2xl text-xs font-black border border-gray-100 uppercase" placeholder="학교 이름" />
+                            <input type="text" value={p.clubName} onChange={e => { 
+                              const val = e.target.value;
+                              setLocalData(prev => {
+                                const updated = [...prev.partners];
+                                if (updated[i]) updated[i].clubName = val;
+                                return { ...prev, partners: updated };
+                              });
+                            }} className="w-full bg-white px-6 py-3 rounded-2xl text-lg font-black border border-gray-100" placeholder="동아리 이름" />
                          </div>
                     </div>
                 ))}
