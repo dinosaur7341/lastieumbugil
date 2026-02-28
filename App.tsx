@@ -333,7 +333,7 @@ const App: React.FC = () => {
           <div className="text-center mb-12 md:mb-24">
             <h2 className="text-3xl md:text-5xl font-black mb-6 md:mb-10 uppercase tracking-tighter">오시는 길</h2>
             <div className="w-16 h-1.5 bg-blue-600 mx-auto rounded-full mb-10"></div>
-            <p className="text-gray-500 font-bold text-lg">충청남도 천안시 동남구 단대로 69 (신부동 245)</p>
+            <p className="text-gray-500 font-bold text-lg">충청남도 천안시 동남구 단대로 69</p>
           </div>
           <div className="w-full h-[400px] md:h-[600px] rounded-[3rem] overflow-hidden shadow-2xl border border-gray-100">
             <iframe 
