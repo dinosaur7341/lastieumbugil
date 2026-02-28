@@ -25,18 +25,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'main' | 'depts' | 'activities' | 'magazine' | 'society' | 'contacts' | 'exchange'>('main');
 
+  const calculateSize = () => {
+    const dataStr = JSON.stringify(localData);
+    const sizeInBytes = new Blob([dataStr]).size;
+    return sizeInBytes / (1024 * 1024);
+  };
+
+  const currentSizeMB = calculateSize();
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // 데이터 크기 체크 (Firestore 1MB 제한)
-      const dataStr = JSON.stringify(localData);
-      const sizeInBytes = new Blob([dataStr]).size;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
+      const sizeInMB = calculateSize();
       
-      console.log(`Current data size: ${sizeInMB.toFixed(2)} MB`);
-      
-      if (sizeInMB > 0.95) {
-        alert(`데이터 용량이 너무 큽니다 (${sizeInMB.toFixed(2)}MB). \n이미지 수를 줄이거나 더 작은 이미지를 사용해주세요. (Firestore 제한: 1MB)`);
+      if (sizeInMB > 0.99) {
+        alert(`데이터 용량이 한계(1MB)를 초과했습니다 (${sizeInMB.toFixed(2)}MB). \n이미지 수를 줄이거나 더 작은 이미지를 사용해주세요.`);
         setIsSaving(false);
         return;
       }
@@ -58,7 +61,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
     }
   };
 
-  const compressImage = (file: File, maxDim: number = 800, quality: number = 0.6): Promise<string> => {
+  const compressImage = (file: File, maxDim: number = 500, quality: number = 0.3): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -90,13 +93,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void, maxDim?: number) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void, maxDim?: number, quality?: number) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImage(file, maxDim || 800, 0.6);
+        const compressed = await compressImage(file, maxDim || 500, quality || 0.3);
         callback(compressed);
-        // Reset input value to allow re-uploading the same file
         e.target.value = '';
       } catch (err) {
         console.error('Image upload error:', err);
@@ -117,7 +119,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
       <nav className="sticky top-0 z-50 h-24 bg-white border-b border-gray-100 px-8 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button onClick={onClose} className="text-gray-400 hover:text-black transition-colors"><Home size={24}/></button>
-          <h1 className="text-xl font-black italic tracking-tighter">IEUM REALTIME CMS</h1>
+          <div>
+            <h1 className="text-xl font-black italic tracking-tighter">IEUM REALTIME CMS</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all ${currentSizeMB > 0.9 ? 'bg-red-500' : currentSizeMB > 0.7 ? 'bg-orange-500' : 'bg-blue-500'}`} 
+                  style={{ width: `${Math.min(100, currentSizeMB * 100)}%` }}
+                ></div>
+              </div>
+              <span className={`text-[10px] font-black ${currentSizeMB > 0.9 ? 'text-red-500' : currentSizeMB > 0.7 ? 'text-orange-500' : 'text-gray-400'}`}>
+                {currentSizeMB.toFixed(2)}MB / 1.00MB
+              </span>
+            </div>
+            {currentSizeMB > 0.9 && (
+              <p className="text-[9px] font-black text-red-500 mt-1 animate-pulse">용량 한계 임박! 사진을 줄여주세요.</p>
+            )}
+          </div>
         </div>
         <div className="flex gap-4">
             <button onClick={handleSave} disabled={isSaving} className="px-10 py-4 bg-blue-600 text-white rounded-full font-black text-sm shadow-xl hover:bg-blue-700 transition-all disabled:bg-gray-200 flex items-center gap-2">
@@ -172,7 +190,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {localData.config.heroBg && <img src={localData.config.heroBg} className="w-16 h-10 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBg: base}})), 2560)} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBg: base}})), 1200, 0.3)} />
                     </label>
                 </div>
               </div>
@@ -182,7 +200,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {(localData.config.heroBgMobile || localData.config.heroBg) && <img src={localData.config.heroBgMobile || localData.config.heroBg} className="w-10 h-16 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBgMobile: base}})), 1280)} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBgMobile: base}})), 600, 0.3)} />
                     </label>
                 </div>
               </div>
@@ -294,7 +312,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                         <input type="file" multiple className="hidden" onChange={async (e) => {
                             const files = Array.from(e.target.files || []);
                             try {
-                                const bases = await Promise.all(files.map((f: File) => compressImage(f)));
+                                const bases = await Promise.all(files.map((f: File) => compressImage(f, 500, 0.3)));
                                 setLocalData(prev => {
                                   const updated = [...prev.activities];
                                   if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
@@ -403,7 +421,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                         <input type="file" multiple className="hidden" onChange={async (e) => {
                             const files = Array.from(e.target.files || []);
                             try {
-                                const bases = await Promise.all(files.map((f: File) => compressImage(f)));
+                                const bases = await Promise.all(files.map((f: File) => compressImage(f, 500, 0.3)));
                                 setLocalData(prev => {
                                   const updated = [...prev.magazines];
                                   if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
@@ -684,7 +702,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                           <input type="file" multiple className="hidden" onChange={async (e) => {
                               const files = Array.from(e.target.files || []);
                               try {
-                                  const bases = await Promise.all(files.map((f: File) => compressImage(f)));
+                                  const bases = await Promise.all(files.map((f: File) => compressImage(f, 500, 0.3)));
                                   setLocalData(prev => {
                                     const updated = [...prev.academicExchange.magazines];
                                     if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
