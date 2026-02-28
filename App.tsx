@@ -134,7 +134,7 @@ const App: React.FC = () => {
           <h1 className="text-5xl md:text-8xl font-black text-white mb-10 leading-[1.1] tracking-tighter whitespace-pre-line animate-fade-in">
             {data.config.heroTitle}
           </h1>
-          <p className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed">{data.config.heroDesc}</p>
+          <p className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto leading-relaxed whitespace-pre-wrap">{data.config.heroDesc}</p>
         </div>
       </section>
 
@@ -150,7 +150,7 @@ const App: React.FC = () => {
               <div key={dept.id} className="p-4 md:p-12 rounded-2xl md:rounded-[3rem] bg-gray-50 border border-gray-100 hover:shadow-2xl transition-all group flex flex-col min-h-[200px] md:min-h-[550px]">
                 <div className="text-2xl md:text-5xl mb-3 md:mb-10 group-hover:scale-110 transition-transform text-center md:text-left">{dept.icon}</div>
                 <h3 className="text-xs md:text-2xl font-black mb-2 md:mb-6 text-center md:text-left">{dept.name}</h3>
-                <p className="hidden md:block text-gray-500 font-medium leading-relaxed mb-4">{dept.description}</p>
+                <p className="hidden md:block text-gray-500 font-medium leading-relaxed mb-4 whitespace-pre-wrap">{dept.description}</p>
                 <p className="hidden md:block text-sm font-bold text-gray-400 italic mb-1">-{dept.leaderName}-</p>
                 <div className="mt-auto pt-2 border-t border-gray-200 hidden md:block">
                   <p className="text-xl font-black italic text-gray-900 leading-tight">"{dept.vision}"</p>
@@ -180,7 +180,7 @@ const App: React.FC = () => {
                 <div className="p-4 md:p-10">
                   <span className="text-[8px] md:text-[10px] font-black text-blue-600 uppercase mb-2 md:mb-4 block tracking-widest">{act.date}</span>
                   <h3 className="text-sm md:text-xl font-black mb-2 md:mb-4 line-clamp-1">{act.title}</h3>
-                  <p className="hidden md:block text-gray-400 text-sm line-clamp-2">{act.content}</p>
+                  <p className="hidden md:block text-gray-400 text-sm line-clamp-2 whitespace-pre-wrap">{act.content}</p>
                 </div>
               </div>
             ))}
@@ -212,7 +212,7 @@ const App: React.FC = () => {
                   <span className="text-blue-500">{mag.author}</span>
                 </div>
                 <h3 className="text-sm md:text-3xl font-black mb-2 md:mb-6 group-hover:text-blue-600 transition-colors line-clamp-1">{mag.title}</h3>
-                <p className="text-gray-500 font-medium leading-relaxed line-clamp-2 text-sm md:text-base">{mag.content}</p>
+                <p className="text-gray-500 font-medium leading-relaxed line-clamp-2 text-sm md:text-base whitespace-pre-wrap">{mag.content}</p>
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12 md:mb-24">
             <h2 className="text-[24px] sm:text-3xl md:text-5xl font-black mb-6 md:mb-10 uppercase tracking-tighter whitespace-nowrap">전국고교인문정치학회</h2>
-            <p className="max-w-3xl mx-auto text-gray-500 font-medium leading-relaxed italic mb-10 md:mb-16 px-4 text-sm md:text-base">{data.societyDesc}</p>
+            <p className="max-w-3xl mx-auto text-gray-500 font-medium leading-relaxed italic mb-10 md:mb-16 px-4 text-sm md:text-base whitespace-pre-wrap">{data.societyDesc}</p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
@@ -234,7 +234,7 @@ const App: React.FC = () => {
                 {data.societyActivities.map(sa => (
                   <div key={sa.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                     <h4 className="text-lg font-black mb-3 text-blue-600">{sa.title}</h4>
-                    <p className="text-gray-500 font-medium leading-relaxed">{sa.description}</p>
+                    <p className="text-gray-500 font-medium leading-relaxed whitespace-pre-wrap">{sa.description}</p>
                   </div>
                 ))}
               </div>

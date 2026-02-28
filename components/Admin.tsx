@@ -28,7 +28,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
     }
   };
 
-  const compressImage = (file: File): Promise<string> => {
+  const compressImage = (file: File, maxDim: number = 800, quality: number = 0.6): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -37,7 +37,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const maxDim = 1200;
           if (width > maxDim || height > maxDim) {
             if (width > height) {
               height = Math.round((height * maxDim) / width);
@@ -51,7 +50,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
+          resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.onerror = reject;
         img.src = e.target?.result as string;
@@ -61,14 +60,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void, maxDim?: number) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const compressed = await compressImage(file);
+        const compressed = await compressImage(file, maxDim || 800, 0.6);
         callback(compressed);
+        // Reset input value to allow re-uploading the same file
+        e.target.value = '';
       } catch (err) {
         console.error('Image upload error:', err);
+        alert('이미지 업로드 중 오류가 발생했습니다.');
       }
     }
   };
@@ -120,7 +122,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {localData.config.logo && <img src={localData.config.logo} className="w-16 h-16 rounded-full border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData({...localData, config: {...localData.config, logo: base}}))} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, logo: base}})))} />
                     </label>
                 </div>
               </div>
@@ -215,9 +217,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                             const files = Array.from(e.target.files || []);
                             try {
                                 const bases = await Promise.all(files.map((f: File) => compressImage(f)));
-                                const updated = [...localData.activities];
-                                updated[i].images = [...updated[i].images, ...bases];
-                                setLocalData({...localData, activities: updated});
+                                setLocalData(prev => {
+                                  const updated = [...prev.activities];
+                                  if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
+                                  return { ...prev, activities: updated };
+                                });
+                                e.target.value = '';
                             } catch (err) {
                                 console.error('Multi-image upload error:', err);
                             }
@@ -260,7 +265,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     <label className={LabelStyle}>하이라이트 (썸네일)</label>
                     <label className="cursor-pointer bg-gray-100 p-6 rounded-3xl flex items-center justify-center gap-3 text-xs font-black hover:bg-gray-200 transition-all border-2 border-dashed border-gray-200">
                         {mag.highlightImage ? <img src={mag.highlightImage} className="w-full h-40 object-cover rounded-xl" /> : <><Upload size={20}/> 썸네일 업로드</>}
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { const updated = [...localData.magazines]; updated[i].highlightImage = base; setLocalData({...localData, magazines: updated}); })} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
+                          setLocalData(prev => {
+                            const updated = [...prev.magazines];
+                            if (updated[i]) updated[i].highlightImage = base;
+                            return { ...prev, magazines: updated };
+                          });
+                        })} />
                     </label>
                     <label className={LabelStyle}>본문 추가 사진</label>
                     <label className="cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
@@ -269,9 +280,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                             const files = Array.from(e.target.files || []);
                             try {
                                 const bases = await Promise.all(files.map((f: File) => compressImage(f)));
-                                const updated = [...localData.magazines];
-                                updated[i].images = [...updated[i].images, ...bases];
-                                setLocalData({...localData, magazines: updated});
+                                setLocalData(prev => {
+                                  const updated = [...prev.magazines];
+                                  if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
+                                  return { ...prev, magazines: updated };
+                                });
+                                e.target.value = '';
                             } catch (err) {
                                 console.error('Multi-image upload error:', err);
                             }
@@ -307,7 +321,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     <button onClick={() => { const updated = [...localData.societyMembers]; updated.splice(i, 1); setLocalData({...localData, societyMembers: updated}); }} className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
                     <label className="w-16 h-16 rounded-full border bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
                         {m.schoolLogo && m.schoolLogo !== "" ? <img src={m.schoolLogo} className="w-full h-full object-contain" /> : <Upload size={16} className="text-gray-300"/>}
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { const updated = [...localData.societyMembers]; updated[i].schoolLogo = base; setLocalData({...localData, societyMembers: updated}); })} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
+                          setLocalData(prev => {
+                            const updated = [...prev.societyMembers];
+                            if (updated[i]) updated[i].schoolLogo = base;
+                            return { ...prev, societyMembers: updated };
+                          });
+                        }, 500)} />
                     </label>
                     <div className="flex-grow space-y-2">
                         <input type="text" value={m.schoolName} onChange={e => { const updated = [...localData.societyMembers]; updated[i].schoolName = e.target.value; setLocalData({...localData, societyMembers: updated}); }} className="w-full bg-white px-4 py-2 rounded-xl text-xs font-black border border-gray-100" placeholder="학교명"/>
@@ -372,7 +392,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                          <button onClick={() => { const updated = [...localData.partners]; updated.splice(i, 1); setLocalData({...localData, partners: updated}); }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
                          <label className="w-20 h-20 rounded-full border-2 border-dashed bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
                             {p.logo && p.logo !== "" ? <img src={p.logo} className="w-full h-full object-contain" /> : <Upload size={20} className="text-gray-300"/>}
-                            <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { const updated = [...localData.partners]; updated[i].logo = base; setLocalData({...localData, partners: updated}); })} />
+                            <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
+                              setLocalData(prev => {
+                                const updated = [...prev.partners];
+                                if (updated[i]) updated[i].logo = base;
+                                return { ...prev, partners: updated };
+                              });
+                            }, 500)} />
                          </label>
                          <div className="flex-grow space-y-3">
                             <input type="text" value={p.schoolName} onChange={e => { const updated = [...localData.partners]; updated[i].schoolName = e.target.value; setLocalData({...localData, partners: updated}); }} className="w-full bg-white px-6 py-3 rounded-2xl text-xs font-black border border-gray-100 uppercase" placeholder="학교 이름" />
