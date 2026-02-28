@@ -41,7 +41,11 @@ const initialData: SiteData = {
   contacts: [
     { id: '1', type: 'Email', label: '공식 이메일', value: 'ieum_official@example.com' }
   ],
-  partners: []
+  academicExchange: {
+    desc: "2026 전국고교인문사회학술교류회는 고등학생들의 학술적 성장을 도모합니다.",
+    participatingClubs: [],
+    magazines: []
+  }
 };
 
 export const dbService = {

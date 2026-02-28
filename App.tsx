@@ -14,7 +14,8 @@ const SECTIONS = [
   { id: 'magazine', label: '이음 매거진' },
   { id: 'society', label: '전국고교인문정치학회' },
   { id: 'contact', label: '문의 및 연락처' },
-  { id: 'partners', label: '협력 동아리' },
+  { id: 'exchange', label: '2026 학술교류회' },
+  { id: 'directions', label: '오시는 길' },
 ];
 
 const App: React.FC = () => {
@@ -231,7 +232,7 @@ const App: React.FC = () => {
             <div className="space-y-10">
               <h3 className="text-2xl font-black tracking-tighter border-l-4 border-blue-600 pl-4">주요 활동 소개</h3>
               <div className="space-y-6">
-                {data.societyActivities.map(sa => (
+                {data.societyActivities?.map(sa => (
                   <div key={sa.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
                     <h4 className="text-lg font-black mb-3 text-blue-600">{sa.title}</h4>
                     <p className="text-gray-500 font-medium leading-relaxed whitespace-pre-wrap">{sa.description}</p>
@@ -242,9 +243,8 @@ const App: React.FC = () => {
             <div className="space-y-10">
               <h3 className="text-2xl font-black tracking-tighter border-l-4 border-blue-600 pl-4">학회 소속 동아리</h3>
               <div className="flex flex-wrap gap-4">
-                {data.societyMembers.map(m => (
+                {data.societyMembers?.map(m => (
                   <div key={m.id} className="bg-white px-4 md:px-6 py-3 md:py-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3 md:gap-4 hover:scale-105 transition-all w-full md:w-[calc(50%-1rem)]">
-                    {m.schoolLogo && <img src={m.schoolLogo} className="w-8 h-8 md:w-10 md:h-10 object-contain" />}
                     <div className="text-left">
                       <p className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase leading-none mb-1">{m.schoolName}</p>
                       <p className="text-xs md:text-sm font-black text-gray-900 leading-none">{m.name}</p>
@@ -277,20 +277,74 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Partners Section */}
-      <section id="partners" className="py-20 md:py-40 bg-gray-50 px-4 md:px-6 reveal">
-        <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-3xl md:text-5xl font-black mb-12 md:mb-20 uppercase tracking-tighter">협력 동아리</h2>
-          <div className="grid grid-cols-2 md:flex md:flex-wrap justify-center gap-3 md:gap-8">
-            {data.partners.map(p => (
-              <div key={p.id} className="bg-white p-4 md:px-10 md:py-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-3 md:gap-6 hover:scale-105 transition-all">
-                {p.logo && <img src={p.logo} className="w-8 h-8 md:w-12 md:h-12 object-contain" />}
-                <div className="text-center md:text-left">
-                  <p className="text-[8px] md:text-[10px] font-black text-gray-400 uppercase leading-none mb-1">{p.schoolName}</p>
-                  <p className="text-xs md:text-lg font-black text-gray-900 leading-none">{p.clubName}</p>
-                </div>
+      {/* Academic Exchange Section */}
+      <section id="exchange" className="py-20 md:py-40 bg-gray-50 px-4 md:px-6 reveal">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 md:mb-24">
+            <h2 className="text-3xl md:text-5xl font-black mb-8 md:mb-12 uppercase tracking-tighter">2026 전국고교인문사회학술교류회</h2>
+            <p className="max-w-3xl mx-auto text-gray-500 font-medium leading-relaxed italic mb-12 md:mb-20 px-4 text-sm md:text-base whitespace-pre-wrap">{data.academicExchange?.desc || "새로운 소식이 곧 업데이트 됩니다."}</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-24">
+            <div className="lg:col-span-1 space-y-8">
+              <h3 className="text-xl font-black tracking-tighter border-l-4 border-blue-600 pl-4">참가 동아리</h3>
+              <div className="grid grid-cols-1 gap-3">
+                {data.academicExchange?.participatingClubs?.map(p => (
+                  <div key={p.id} className="bg-white px-6 py-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4 hover:scale-105 transition-all">
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">{p.schoolName}</p>
+                      <p className="text-sm font-black text-gray-900 leading-none">{p.clubName}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="lg:col-span-2 space-y-8">
+              <h3 className="text-xl font-black tracking-tighter border-l-4 border-blue-600 pl-4">교류회 매거진</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {data.academicExchange?.magazines?.map(mag => (
+                  <div key={mag.id} className="bg-white rounded-3xl overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all" onClick={() => setSelectedMagazine(mag)}>
+                    <div className="aspect-[16/9] relative overflow-hidden">
+                      {mag.highlightImage && <img src={mag.highlightImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <button className="px-6 py-2 bg-white text-black font-black rounded-full text-[10px]">읽어보기</button>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
+                        <span>{mag.date}</span>
+                        <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
+                        <span className="text-blue-500">{mag.author}</span>
+                      </div>
+                      <h4 className="text-lg font-black mb-2 line-clamp-1">{mag.title}</h4>
+                      <p className="text-gray-500 text-xs line-clamp-2 whitespace-pre-wrap">{mag.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Directions Section */}
+      <section id="directions" className="py-20 md:py-40 bg-white px-4 md:px-6 reveal">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 md:mb-24">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 md:mb-10 uppercase tracking-tighter">오시는 길</h2>
+            <div className="w-16 h-1.5 bg-blue-600 mx-auto rounded-full mb-10"></div>
+            <p className="text-gray-500 font-bold text-lg">충청남도 천안시 동남구 망향로 101 (북일고등학교)</p>
+          </div>
+          <div className="w-full h-[400px] md:h-[600px] rounded-[3rem] overflow-hidden shadow-2xl border border-gray-100">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3198.560411132213!2d127.1648023152876!3d36.82901397994334!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357ad76648710389%3A0x633e08f5193f357b!2z67aB7J286rOg65Ox7ZWZ6rWQ!5e0!3m2!1sko!2skr!4v1646035200000!5m2!1sko!2skr" 
+              width="100%" 
+              height="100%" 
+              style={{ border: 0 }} 
+              allowFullScreen={true} 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+            ></iframe>
           </div>
         </div>
       </section>

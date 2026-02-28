@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { SiteData, Activity, Magazine, MagazineCategory, SocietyMember, ContactInfo, PartnerClub, SocietyActivity } from '../types';
+import { SiteData, Activity, Magazine, MagazineCategory, SocietyMember, ContactInfo, SocietyActivity, ExchangeClub } from '../types';
 import { Trash2, Plus, Save, Home, CheckCircle2, Image as ImageIcon, Upload, Menu } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -10,10 +10,20 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
-  const [localData, setLocalData] = useState<SiteData>(JSON.parse(JSON.stringify(data)));
+  const [localData, setLocalData] = useState<SiteData>(() => {
+    const parsed = JSON.parse(JSON.stringify(data));
+    if (!parsed.academicExchange) {
+      parsed.academicExchange = {
+        desc: "2026 전국고교인문사회학술교류회는 고등학생들의 학술적 성장을 도모합니다.",
+        participatingClubs: [],
+        magazines: []
+      };
+    }
+    return parsed;
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'main' | 'depts' | 'activities' | 'magazine' | 'society' | 'contacts' | 'partners'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'depts' | 'activities' | 'magazine' | 'society' | 'contacts' | 'exchange'>('main');
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -123,7 +133,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
         {TabBtn('magazine', '매거진')}
         {TabBtn('society', '학회 관리')}
         {TabBtn('contacts', '연락처')}
-        {TabBtn('partners', '협력 동아리')}
+        {TabBtn('exchange', '2026 학술교류회')}
       </div>
 
       <div className="max-w-6xl mx-auto w-full p-8 pb-60 flex-grow">
@@ -162,7 +172,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {localData.config.heroBg && <img src={localData.config.heroBg} className="w-16 h-10 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBg: base}})))} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBg: base}})), 2560)} />
                     </label>
                 </div>
               </div>
@@ -172,7 +182,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                     {(localData.config.heroBgMobile || localData.config.heroBg) && <img src={localData.config.heroBgMobile || localData.config.heroBg} className="w-10 h-16 rounded-lg border bg-gray-50 object-cover" />}
                     <label className="flex-1 cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
                         <Upload size={16}/> 파일 선택
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBgMobile: base}})))} />
+                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => setLocalData(prev => ({...prev, config: {...prev.config, heroBgMobile: base}})), 1280)} />
                     </label>
                 </div>
               </div>
@@ -442,16 +452,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
                         return { ...prev, societyMembers: updated };
                       });
                     }} className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
-                    <label className="w-16 h-16 rounded-full border bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
-                        {m.schoolLogo && m.schoolLogo !== "" ? <img src={m.schoolLogo} className="w-full h-full object-contain" /> : <Upload size={16} className="text-gray-300"/>}
-                        <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
-                          setLocalData(prev => {
-                            const updated = [...prev.societyMembers];
-                            if (updated[i]) updated[i].schoolLogo = base;
-                            return { ...prev, societyMembers: updated };
-                          });
-                        }, 500)} />
-                    </label>
                     <div className="flex-grow space-y-2">
                         <input type="text" value={m.schoolName} onChange={e => { 
                           const val = e.target.value;
@@ -557,52 +557,167 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ data, onSave, onClose }) => {
           </div>
         )}
 
-        {activeTab === 'partners' && (
-          <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm animate-fade-in space-y-10">
-            <div className="flex items-center justify-between">
-                <h2 className={SectionTitle}>협력 동아리 관리</h2>
-                <button onClick={() => setLocalData(prev => ({...prev, partners: [...prev.partners, {id: Date.now().toString(), schoolName: '', clubName: '', logo: ''}]}))} className="p-4 bg-blue-600 text-white rounded-2xl flex items-center gap-2 text-sm font-black shadow-lg"><Plus size={20}/> 동아리 추가</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {localData.partners.map((p, i) => (
-                    <div key={p.id} className="p-8 bg-gray-50 rounded-[2.5rem] flex items-center gap-8 relative group">
-                         <button onClick={() => { 
-                           setLocalData(prev => {
-                             const updated = [...prev.partners];
-                             updated.splice(i, 1);
-                             return { ...prev, partners: updated };
-                           });
-                         }} className="absolute top-4 right-4 text-red-300 hover:text-red-500 transition-all"><Trash2 size={20}/></button>
-                         <label className="w-20 h-20 rounded-full border-2 border-dashed bg-white flex items-center justify-center cursor-pointer overflow-hidden flex-shrink-0">
-                            {p.logo && p.logo !== "" ? <img src={p.logo} className="w-full h-full object-contain" /> : <Upload size={20} className="text-gray-300"/>}
-                            <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
-                              setLocalData(prev => {
-                                const updated = [...prev.partners];
-                                if (updated[i]) updated[i].logo = base;
-                                return { ...prev, partners: updated };
-                              });
-                            }, 500)} />
-                         </label>
-                         <div className="flex-grow space-y-3">
-                            <input type="text" value={p.schoolName} onChange={e => { 
-                              const val = e.target.value;
-                              setLocalData(prev => {
-                                const updated = [...prev.partners];
-                                if (updated[i]) updated[i].schoolName = val;
-                                return { ...prev, partners: updated };
-                              });
-                            }} className="w-full bg-white px-6 py-3 rounded-2xl text-xs font-black border border-gray-100 uppercase" placeholder="학교 이름" />
-                            <input type="text" value={p.clubName} onChange={e => { 
-                              const val = e.target.value;
-                              setLocalData(prev => {
-                                const updated = [...prev.partners];
-                                if (updated[i]) updated[i].clubName = val;
-                                return { ...prev, partners: updated };
-                              });
-                            }} className="w-full bg-white px-6 py-3 rounded-2xl text-lg font-black border border-gray-100" placeholder="동아리 이름" />
-                         </div>
+        {activeTab === 'exchange' && (
+          <div className="space-y-16 animate-fade-in">
+            <div className="p-10 bg-white rounded-[3rem] border border-gray-100 shadow-sm space-y-8">
+              <h2 className={SectionTitle}>교류회 설명 및 참가 동아리</h2>
+              <textarea value={localData.academicExchange.desc} onChange={e => {
+                const val = e.target.value;
+                setLocalData(prev => ({...prev, academicExchange: {...prev.academicExchange, desc: val}}));
+              }} className={`${InputStyle} min-h-[120px]`} placeholder="교류회 소개 글을 작성하세요." />
+              
+              <div className="flex items-center justify-between mt-10">
+                <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest italic">참가 동아리 리스트</h3>
+                <button onClick={() => setLocalData(prev => ({...prev, academicExchange: {...prev.academicExchange, participatingClubs: [...prev.academicExchange.participatingClubs, {id: Date.now().toString(), schoolName: '', clubName: ''}]}}))} className="p-3 bg-gray-100 rounded-xl hover:bg-black hover:text-white transition-all"><Plus size={20}/></button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {localData.academicExchange.participatingClubs.map((club, i) => (
+                  <div key={club.id} className="p-6 bg-gray-50 rounded-3xl flex items-center gap-6 relative group">
+                    <button onClick={() => { 
+                      setLocalData(prev => {
+                        const updated = [...prev.academicExchange.participatingClubs];
+                        updated.splice(i, 1);
+                        return { ...prev, academicExchange: {...prev.academicExchange, participatingClubs: updated} };
+                      });
+                    }} className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
+                    <div className="flex-grow space-y-2">
+                        <input type="text" value={club.schoolName} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.academicExchange.participatingClubs];
+                            if (updated[i]) updated[i].schoolName = val;
+                            return { ...prev, academicExchange: {...prev.academicExchange, participatingClubs: updated} };
+                          });
+                        }} className="w-full bg-white px-4 py-2 rounded-xl text-xs font-black border border-gray-100" placeholder="학교명"/>
+                        <input type="text" value={club.clubName} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.academicExchange.participatingClubs];
+                            if (updated[i]) updated[i].clubName = val;
+                            return { ...prev, academicExchange: {...prev.academicExchange, participatingClubs: updated} };
+                          });
+                        }} className="w-full bg-white px-4 py-2 rounded-xl text-sm font-black border border-gray-100" placeholder="동아리명"/>
                     </div>
+                  </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="space-y-10">
+              <div className="flex items-center justify-between">
+                <h2 className={SectionTitle}>교류회 매거진 관리</h2>
+                <button onClick={() => setLocalData(prev => ({...prev, academicExchange: {...prev.academicExchange, magazines: [{id: Date.now().toString(), title: '', author: '', category: '활동소식', highlightImage: '', images: [], content: '', date: new Date().toISOString().split('T')[0]}, ...prev.academicExchange.magazines]}}))} className="p-4 bg-blue-600 text-white rounded-2xl hover:bg-black transition-all shadow-lg flex items-center gap-2 text-sm font-black"><Plus size={20}/> 새 매거진 추가</button>
+              </div>
+              {localData.academicExchange.magazines.map((mag, i) => (
+                <div key={mag.id} className="p-10 bg-white rounded-[3rem] border border-gray-100 relative shadow-sm">
+                  <button onClick={() => { 
+                    if(confirm('삭제할까요?')){ 
+                      setLocalData(prev => {
+                        const updated = [...prev.academicExchange.magazines];
+                        updated.splice(i, 1);
+                        return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                      });
+                    }
+                  }} className="absolute top-8 right-8 text-red-300 hover:text-red-500"><Trash2 size={24}/></button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-6">
+                      <input type="text" value={mag.title} onChange={e => { 
+                        const val = e.target.value;
+                        setLocalData(prev => {
+                          const updated = [...prev.academicExchange.magazines];
+                          if (updated[i]) updated[i].title = val;
+                          return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                        });
+                      }} className={InputStyle} placeholder="매거진 제목"/>
+                      <div className="flex gap-4">
+                        <input type="text" value={mag.author} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.academicExchange.magazines];
+                            if (updated[i]) updated[i].author = val;
+                            return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                          });
+                        }} className={InputStyle} placeholder="작성자"/>
+                        <input type="date" value={mag.date} onChange={e => { 
+                          const val = e.target.value;
+                          setLocalData(prev => {
+                            const updated = [...prev.academicExchange.magazines];
+                            if (updated[i]) updated[i].date = val;
+                            return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                          });
+                        }} className={InputStyle}/>
+                      </div>
+                      <select value={mag.category} onChange={e => { 
+                        const val = e.target.value as MagazineCategory;
+                        setLocalData(prev => {
+                          const updated = [...prev.academicExchange.magazines];
+                          if (updated[i]) updated[i].category = val;
+                          return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                        });
+                      }} className={InputStyle}>
+                          <option value="활동소식">활동소식</option><option value="인터뷰">인터뷰</option><option value="칼럼">칼럼</option><option value="탐구자료">탐구자료</option>
+                      </select>
+                      <textarea value={mag.content} onChange={e => { 
+                        const val = e.target.value;
+                        setLocalData(prev => {
+                          const updated = [...prev.academicExchange.magazines];
+                          if (updated[i]) updated[i].content = val;
+                          return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                        });
+                      }} className={`${InputStyle} min-h-[300px]`} placeholder="본문 내용"/>
+                    </div>
+                    <div className="space-y-6">
+                      <label className={LabelStyle}>하이라이트 (썸네일)</label>
+                      <label className="cursor-pointer bg-gray-100 p-6 rounded-3xl flex items-center justify-center gap-3 text-xs font-black hover:bg-gray-200 transition-all border-2 border-dashed border-gray-200">
+                          {mag.highlightImage ? <img src={mag.highlightImage} className="w-full h-40 object-cover rounded-xl" /> : <><Upload size={20}/> 썸네일 업로드</>}
+                          <input type="file" className="hidden" onChange={e => handleImageUpload(e, (base) => { 
+                            setLocalData(prev => {
+                              const updated = [...prev.academicExchange.magazines];
+                              if (updated[i]) updated[i].highlightImage = base;
+                              return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                            });
+                          })} />
+                      </label>
+                      <label className={LabelStyle}>본문 추가 사진</label>
+                      <label className="cursor-pointer bg-gray-100 p-4 rounded-2xl flex items-center justify-center gap-2 text-xs font-black hover:bg-gray-200 transition-all">
+                          <Upload size={16}/> 사진 추가 선택
+                          <input type="file" multiple className="hidden" onChange={async (e) => {
+                              const files = Array.from(e.target.files || []);
+                              try {
+                                  const bases = await Promise.all(files.map((f: File) => compressImage(f)));
+                                  setLocalData(prev => {
+                                    const updated = [...prev.academicExchange.magazines];
+                                    if (updated[i]) updated[i].images = [...updated[i].images, ...bases];
+                                    return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                                  });
+                                  e.target.value = '';
+                              } catch (err) {
+                                  console.error('Multi-image upload error:', err);
+                              }
+                          }} />
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                          {mag.images.map((img, imgI) => (
+                              <div key={imgI} className="aspect-square rounded-xl overflow-hidden relative group/img shadow-sm">
+                                  {img && <img src={img} className="w-full h-full object-cover" />}
+                                  <button onClick={() => { 
+                                    setLocalData(prev => {
+                                      const updated = [...prev.academicExchange.magazines];
+                                      if (updated[i]) {
+                                        const newImages = [...updated[i].images];
+                                        newImages.splice(imgI, 1);
+                                        updated[i].images = newImages;
+                                      }
+                                      return { ...prev, academicExchange: {...prev.academicExchange, magazines: updated} };
+                                    });
+                                  }} className="absolute inset-0 bg-red-600/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white"><Trash2 size={16}/></button>
+                              </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

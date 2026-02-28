@@ -44,7 +44,6 @@ export interface Magazine {
 export interface SocietyMember {
   id: string;
   name: string;
-  schoolLogo: string;
   schoolName: string;
 }
 
@@ -61,11 +60,16 @@ export interface ContactInfo {
   value: string;
 }
 
-export interface PartnerClub {
+export interface ExchangeClub {
   id: string;
   schoolName: string;
   clubName: string;
-  logo: string;
+}
+
+export interface AcademicExchange {
+  desc: string;
+  participatingClubs: ExchangeClub[];
+  magazines: Magazine[];
 }
 
 export interface SiteData {
@@ -77,5 +81,5 @@ export interface SiteData {
   societyMembers: SocietyMember[];
   societyActivities: SocietyActivity[];
   contacts: ContactInfo[];
-  partners: PartnerClub[];
+  academicExchange: AcademicExchange;
 }
